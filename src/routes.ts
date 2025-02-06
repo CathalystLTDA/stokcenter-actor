@@ -27,7 +27,7 @@ const waitForLoadingScreen = async (page: any, log: any) => {
 router.addDefaultHandler(async ({ enqueueLinks, log, page }) => {
     await waitForLoadingScreen(page, log);
     log.info(`enqueueing new URLs`);
-    await page.waitForSelector('.featured', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('.featured', { state: 'visible', timeout: 10000 });
     await enqueueLinks({
         globs: ['https://www.stokonline.com.br/produtos/departamento/*'],
         label: 'section',
@@ -39,7 +39,7 @@ router.addHandler('section', async ({ request, page, log, enqueueLinks }) => {
     const title = await page.title();
     log.info(`${title}`, { url: request.loadedUrl });
 
-    await page.waitForSelector('.thumbnail', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('.thumbnail', { state: 'visible', timeout: 10000 });
     await enqueueLinks({
         globs: [`${request.loadedUrl}/*`],
         label: 'category',
@@ -51,9 +51,9 @@ router.addHandler('category', async ({ page, pushData, log }) => {
     await scrollToBottom(page); // Scroll to load all products
 
     // Wait for products to be visible
-    await page.waitForSelector('.border-promotion', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('.border-promotion', { state: 'visible', timeout: 10000 });
 
-    await page.waitForSelector('.image-product', { state: 'attached', timeout: 5000 });
+    await page.waitForSelector('.image-product', { state: 'attached', timeout: 10000 });
 
     const categories = await page.$$eval('.vip-tabs-bar__item .ng-star-inserted', (elements) => {
         return elements.map(el => el.textContent?.trim()).filter(text => text);
