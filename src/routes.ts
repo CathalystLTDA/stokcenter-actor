@@ -2,9 +2,6 @@ import { Dataset, createPlaywrightRouter } from 'crawlee';
 
 export const router = createPlaywrightRouter();
 
-
-
-
 const scrollToBottom = async (page: any) => {
     let previousHeight: number;
     while (true) {
@@ -86,14 +83,25 @@ router.addHandler('category', async ({ page, pushData, log }) => {
         }).filter(product => product.title && product.originalPrice); // Filter out null values
     });
 
+    const weigthRegex = /\b(\d+(?:[.,]\d+)?)\s*(kg|g)\b/gi;
+
+    const unitRegex = /\b(\d+)\s*(?:unid\.?|unidade)\b/gi;
+
+    const volumeRegex = /\b(\d+(?:[.,]\d+)?)\s*(ml|l)\b/gi;
+
     const finalProducts = data.map(product => {
+        const weight = product.title?.match(weigthRegex)?.[0] || '';
+        const unit = product.title?.match(unitRegex)?.[0] || '';
+        const volume = product.title?.match(volumeRegex)?.[0] || '';
         return {
             ...product,
             department,
             category,
+            weight,
+            unit,
+            volume
         }
     })
-
 
     await pushData(finalProducts);
     log.info(`Scraped ${data.length} products from ${page.url()}`);

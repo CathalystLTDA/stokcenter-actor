@@ -9,11 +9,14 @@
 	"dependencies": {
 		"apify": "^3.2.6",
 		"crawlee": "^3.11.5",
+		"dotenv": "^16.4.7",
+		"pg": "^8.13.1",
 		"playwright": "*"
 	},
 	"devDependencies": {
 		"@apify/eslint-config-ts": "^0.3.0",
 		"@apify/tsconfig": "^0.1.0",
+		"@types/pg": "^8.11.11",
 		"@typescript-eslint/eslint-plugin": "^7.18.0",
 		"@typescript-eslint/parser": "^7.18.0",
 		"eslint": "^8.50.0",
