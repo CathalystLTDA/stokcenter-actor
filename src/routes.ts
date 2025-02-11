@@ -46,63 +46,90 @@ router.addHandler('section', async ({ request, page, log, enqueueLinks }) => {
 router.addHandler('category', async ({ page, pushData, log }) => {
     await waitForLoadingScreen(page, log); // Ensure loading screen disappears
     await scrollToBottom(page); // Scroll to load all products
-
-    // Wait for products to be visible
-    await page.waitForSelector('.border-promotion', { state: 'visible', timeout: 20000 });
-
-    await page.waitForSelector('.image-product', { state: 'attached', timeout: 20000 });
-
-    const categories = await page.$$eval('.vip-tabs-bar__item .ng-star-inserted', (elements) => {
-        return elements.map(el => el.textContent?.trim()).filter(text => text);
-    });
-
-    const department = categories[0];
-    const category = categories[1];
-
-
-    const data = await page.$$eval('.border-promotion', ($products) => {
-        return $products.map(($product) => {
-
-            
-
-            const titleElement = $product.querySelector('.caption a');
-            const imageElement = $product.querySelector('.img-container--product');
-             // Extract only the price text, ignoring 'un.'
-            const prices = Array.from($product.querySelectorAll('.info-price'))
-            .map(price => {
-                return price.childNodes[0]?.textContent?.trim().replace(/\s*un\.$/, '') || '';
-            }).filter(price => price.length > 0);
-
-            return {
-                title: titleElement ? (titleElement as HTMLElement).innerText.trim() : null,
-                imageUrl: imageElement ? (imageElement as HTMLImageElement).src : null,
-                originalPrice: prices[0] || '',
-                discountedPrice: prices.length > 1 ? prices[1] : '',
-            };
-
-        }).filter(product => product.title && product.originalPrice); // Filter out null values
-    });
-
-    const weigthRegex = /\b(\d+(?:[.,]\d+)?)\s*(kg|g)\b/gi;
-
-    const unitRegex = /\b(\d+)\s*(?:unid\.?|unidade)\b/gi;
-
-    const volumeRegex = /\b(\d+(?:[.,]\d+)?)\s*(ml|l)\b/gi;
-
-    const finalProducts = data.map(product => {
-        const weight = product.title?.match(weigthRegex)?.[0] || '';
-        const unit = product.title?.match(unitRegex)?.[0] || '';
-        const volume = product.title?.match(volumeRegex)?.[0] || '';
-        return {
-            ...product,
-            department,
-            category,
-            weight,
-            unit,
-            volume
+    let isNextButtonDisabled = true;
+    do {
+        if(!isNextButtonDisabled){
+            await waitForLoadingScreen(page, log); // Ensure loading screen disappears
+            await scrollToBottom(page); // Scroll to load all products
         }
-    })
 
-    await pushData(finalProducts);
-    log.info(`Scraped ${data.length} products from ${page.url()}`);
+        // Wait for products to be visible
+        await page.waitForSelector('.border-promotion', { state: 'visible', timeout: 20000 });
+
+        await page.waitForSelector('.image-product', { state: 'attached', timeout: 20000 });
+
+        const categories = await page.$$eval('.vip-tabs-bar__item .ng-star-inserted', (elements) => {
+            return elements.map(el => el.textContent?.trim()).filter(text => text);
+        });
+
+        const department = categories[0];
+        const category = categories[1];
+
+        
+
+        const data = await page.$$eval('.border-promotion', ($products) => {
+            return $products.map(($product) => {
+
+                
+
+                const titleElement = $product.querySelector('.caption a');
+                const imageElement = $product.querySelector('.img-container--product');
+                // Extract only the price text, ignoring 'un.'
+                const prices = Array.from($product.querySelectorAll('.info-price'))
+                .map(price => {
+                    return price.childNodes[0]?.textContent?.trim().replace(/\s*un\.$/, '') || '';
+                }).filter(price => price.length > 0);
+
+                return {
+                    title: titleElement ? (titleElement as HTMLElement).innerText.trim() : null,
+                    imageUrl: imageElement ? (imageElement as HTMLImageElement).src : null,
+                    originalPrice: prices[0] || '',
+                    discountedPrice: prices.length > 1 ? prices[1] : '',
+                };
+
+            }).filter(product => product.title && product.originalPrice.length > 0); // Filter out null values
+        });
+
+        const weigthRegex = /\b(\d+(?:[.,]\d+)?)\s*(kg|g)\b/gi;
+
+        const unitRegex = /\b(\d+)\s*(?:unid\.?|unidade)\b/gi;
+
+        const volumeRegex = /\b(\d+(?:[.,]\d+)?)\s*(ml|l)\b/gi;
+
+        const finalProducts = data.map(product => {
+            const weight = product.title?.match(weigthRegex)?.[0] || '';
+            const unit = product.title?.match(unitRegex)?.[0] || '';
+            const volume = product.title?.match(volumeRegex)?.[0] || '';
+            return {
+                ...product,
+                department,
+                category,
+                weight,
+                unit,
+                volume
+            }
+        })
+
+        await pushData(finalProducts);
+        log.info(`Scraped ${data.length} products from ${page.url()}`);
+
+        const buttonExists = await page.$('li > a[aria-label="Next"]') !== null;
+
+        if(buttonExists){
+            // Check if the <li> element does not have the 'disabled' class
+            isNextButtonDisabled = await page.$eval('li > a[aria-label="Next"]', (el) => {
+                const parentLi = el.closest('li');
+                return parentLi ? parentLi.classList.contains('disabled') : true;
+            });
+            
+            if (!isNextButtonDisabled) {
+                await page.click('li:not(.disabled) > a[aria-label="Next"]');
+                console.log('Button clicked successfully!');
+            }
+        }
+        else {
+            isNextButtonDisabled = true;
+        }
+        
+    } while (!isNextButtonDisabled);
 });
