@@ -52,7 +52,7 @@ const crawler = new PlaywrightCrawler({
     maxConcurrency: 5,
 });
 
-//await crawler.run(startUrls);
+await crawler.run(startUrls);
 
 
 console.log('Now inserting data into PostgreSQL...');
